@@ -47,9 +47,9 @@ defmodule Exq.Redis.JobStat do
     [["SADD", JobQueue.full_key(namespace, "processes"), serialized]]
   end
 
-  def add_process(redis, namespace, process_info, serialized_process \\ nil) do
+  def add_process(namespace, process_info, serialized_process \\ nil) do
     instr = add_process_commands(namespace, process_info, serialized_process)
-    Connection.qp!(redis, instr)
+    Connection.qmn!(instr)
     :ok
   end
 
@@ -58,9 +58,9 @@ defmodule Exq.Redis.JobStat do
     [["SREM", JobQueue.full_key(namespace, "processes"), serialized]]
   end
 
-  def remove_process(redis, namespace, process_info, serialized_process \\ nil) do
+  def remove_process(namespace, process_info, serialized_process \\ nil) do
     instr = remove_process_commands(namespace, process_info, serialized_process)
-    Connection.qp!(redis, instr)
+    Connection.qmn!(instr)
     :ok
   end
 

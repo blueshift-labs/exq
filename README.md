@@ -107,6 +107,13 @@ config :exq,
   shutdown_timeout: 5000
 ```
 
+For redis_cluster:
+```
+config :exq,
+  redis_cluster: [hosts: ["127.0.0.1", "127.0.0.1"], ports: [7001, 7002]]
+```
+You can also set pool_size, pool_max_overflow, database, and password, as keywords with args i.e. `pool_size: 20` within the redis_cluster config if needed
+
 ### Concurrency:
 
 Exq supports concurrency setting per queue.  You can specify the same ```concurrency``` option to apply to each queue or specify it based on a per queue basis.

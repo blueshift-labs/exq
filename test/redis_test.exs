@@ -32,22 +32,8 @@ defmodule Exq.RedisTest do
     assert Connection.smembers!(:testredis, "theset") == ["amember"]
   end
 
-  test "sismember" do
-    _ = Connection.sadd!(:testredis, "theset", "amember")
-    _ = Connection.sadd!(:testredis, "theset", "anothermember")
-    assert 1 == Connection.sismember!(:testredis, "theset", "amember")
-    assert 1 == Connection.sismember!(:testredis, "theset", "anothermember")
-    assert 0 == Connection.sismember!(:testredis, "theset", "not_a_member")
-  end
-
   test "lpop empty" do
     assert Connection.lpop(:testredis, "bogus") == {:ok, nil}
-  end
-
-  test "rpush / lpop" do
-    Connection.rpush!(:testredis, "akey", "avalue")
-    assert Connection.lpop(:testredis, "akey") == {:ok, "avalue"}
-    assert Connection.lpop(:testredis, "akey") == {:ok, nil}
   end
 
   test "zadd / zcard / zrem" do
@@ -97,19 +83,6 @@ defmodule Exq.RedisTest do
     assert Connection.zrem!(:testredis, "akey", "avalue") == 0
     assert Connection.zrem!(:testredis, "akey", "cvalue") == 1
     assert Connection.zrangebyscore!(:testredis, "akey", 0, "999999.999999") == []
-  end
-
-  test "zcount" do
-    assert Connection.zcount!(:testredis, "akey") == Connection.zcard!(:testredis, "akey")
-    assert Connection.zadd!(:testredis, "akey", "1", "avalue") == 1
-    assert Connection.zadd!(:testredis, "akey", "1", "bvalue") == 1
-    assert Connection.zadd!(:testredis, "akey", "2", "cvalue") == 1
-
-    assert Connection.zcount!(:testredis, "akey", "0", "1") == 2
-    assert Connection.zcount!(:testredis, "akey", "1", "1") == 2
-    assert Connection.zcount!(:testredis, "akey", "-inf", "+inf") == 3
-    assert Connection.zcount!(:testredis, "akey", "1", "(2") == 2
-    assert Connection.zcount!(:testredis, "akey", "(1", "2") == 1
   end
 
   test "flushdb" do

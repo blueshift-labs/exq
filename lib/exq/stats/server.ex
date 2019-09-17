@@ -134,7 +134,7 @@ defmodule Exq.Stats.Server do
     case :queue.out(queue) do
       {:empty, q} ->
         if size > 0 do
-          Connection.qp!(state.redis, redis_batch)
+          Connection.qmn!(redis_batch)
         end
 
         q
@@ -144,7 +144,7 @@ defmodule Exq.Stats.Server do
           redis_batch = redis_batch ++ generate_instructions(msg)
           process_queue(q, state, redis_batch, size + 1)
         else
-          Connection.qp!(state.redis, redis_batch)
+          Connection.qmn!(redis_batch)
           redis_batch = [] ++ generate_instructions(msg)
           process_queue(q, state, redis_batch, 1)
         end

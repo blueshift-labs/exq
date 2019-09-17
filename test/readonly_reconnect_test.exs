@@ -15,24 +15,6 @@ defmodule ReadonlyReconnectTest do
     {:ok, redis: redis}
   end
 
-  test "disconnect on read-only errors with single command", %{redis: redis} do
-    Exq.Redis.Connection.q(:testredis, ["SET", "key", "value"])
-    assert_received({:EXIT, pid, :killed})
-    assert redis == pid
-  end
-
-  test "disconnect on read-only errors with command pipeline", %{redis: redis} do
-    Exq.Redis.Connection.qp(:testredis, [["GET", "key"], ["SET", "key", "value"]])
-    assert_received({:EXIT, pid, :killed})
-    assert redis == pid
-  end
-
-  test "disconnect on read-only errors with command pipeline returning values", %{redis: redis} do
-    Exq.Redis.Connection.qp!(:testredis, [["GET", "key"], ["SET", "key", "value"]])
-    assert_received({:EXIT, pid, :killed})
-    assert redis == pid
-  end
-
   test "pass through other errors" do
     assert {:error, %Redix.Error{}} = Exq.Redis.Connection.q(:testredis, ["GETS", "key"])
     assert {:ok, [%Redix.Error{}]} = Exq.Redis.Connection.qp(:testredis, [["GETS", "key"]])

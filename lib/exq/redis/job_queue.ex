@@ -45,10 +45,10 @@ defmodule Exq.Redis.JobQueue do
         ])
 
       case response do
-        {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
-        {:ok, [%Redix.Error{}, _]} = error -> error
-        {:ok, [_, %Redix.Error{}]} = error -> error
-        {:ok, [_, _]} -> :ok
+        [{:error, _any}, {:error, _any}] = error -> error
+        [{:error, _any}, _] = error -> error
+        [_, {:error, _any}] = error -> error
+        [_, _] -> :ok
         other -> other
       end
     catch
@@ -103,6 +103,7 @@ defmodule Exq.Redis.JobQueue do
 
     resp = Connection.qp(redis, deq_commands)
 
+    # todo re-do this
     case resp do
       {:error, reason} ->
         [{:error, reason}]
@@ -200,11 +201,13 @@ defmodule Exq.Redis.JobQueue do
     scheduler_dequeue_requeue(t, redis, namespace, schedule_queue, count)
   end
 
-  def full_key("", key), do: key
-  def full_key(nil, key), do: key
-
   def full_key(namespace, key) do
-    "#{namespace}:#{key}"
+    # below is a special-case for stat strings to be on one node
+    if String.starts_with?(key, "stat:") do
+      "#{namespace}:{stat}:#{key}"
+    else
+      "#{namespace}:{#{key}}"
+    end
   end
 
   def queue_key(namespace, queue) do
@@ -289,7 +292,7 @@ defmodule Exq.Redis.JobQueue do
       ["ZREMRANGEBYRANK", key, 0, -Config.get(:dead_max_jobs) - 1]
     ]
 
-    Connection.qp!(redis, commands)
+    Connection.qmn!(commands)
   end
 
   def queue_size(redis, namespace) do

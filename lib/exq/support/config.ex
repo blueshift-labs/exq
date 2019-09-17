@@ -2,10 +2,7 @@ defmodule Exq.Support.Config do
   @default_config %{
     name: Exq,
     mode: :default,
-    host: "127.0.0.1",
-    port: 6379,
-    database: 0,
-    redis_options: [],
+    redis_cluster: [hosts: ["127.0.0.1"], ports: [7001]],
     namespace: "exq",
     queues: ["default"],
     json_library: Jason,

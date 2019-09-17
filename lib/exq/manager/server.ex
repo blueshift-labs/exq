@@ -397,20 +397,22 @@ defmodule Exq.Manager.Server do
   # user friendly error message if Redis is down.
   defp check_redis_connection(opts) do
     try do
-      {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
+      ~w(PING)
+      |> Exq.Redis.Connection.qa()
+      |> Enum.each(fn {:ok, _any} -> :ok end)
     catch
       err, reason ->
-        opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap() |> List.delete(:password)
+        opts = Config.get(:redis_cluster) |> List.wrap() |> List.delete(:password)
 
         raise """
         \n\n\n#{String.duplicate("=", 100)}
-        ERROR! Could not connect to Redis!
+        ERROR! Could not connect to Redis Cluster!
 
         Configuration passed in: #{inspect(opts)}
         Error: #{inspect(err)}
         Reason: #{inspect(reason)}
 
-        Make sure Redis is running, and your configuration matches Redis settings.
+        Make sure Redis Cluster is running, and your configuration matches Redis settings.
         #{String.duplicate("=", 100)}
         """
     end
