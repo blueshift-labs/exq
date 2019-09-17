@@ -5,8 +5,6 @@ defmodule Exq.Redis.Connection do
   """
   require Logger
 
-  alias Exq.Support.Config
-
   def flushdb!() do
     qa(["flushdb"])
   end
@@ -116,6 +114,6 @@ defmodule Exq.Redis.Connection do
 
   def qmn!(commands) do
     :eredis_cluster.qmn(commands)
-    |> Enum.each({:ok, _any} -> :ok end)
+    |> Enum.each(fn {:ok, _any} -> :ok end)
   end
 end

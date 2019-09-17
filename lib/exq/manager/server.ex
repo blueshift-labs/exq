@@ -171,7 +171,7 @@ defmodule Exq.Manager.Server do
       scheduler_poll_timeout: opts[:scheduler_poll_timeout]
     }
 
-    check_redis_connection(opts)
+    check_redis_connection()
     {:ok, state, 0}
   end
 
@@ -395,7 +395,7 @@ defmodule Exq.Manager.Server do
 
   # Check Redis connection using PING and raise exception with
   # user friendly error message if Redis is down.
-  defp check_redis_connection(opts) do
+  defp check_redis_connection() do
     try do
       ~w(PING)
       |> Exq.Redis.Connection.qa()

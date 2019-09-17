@@ -17,7 +17,7 @@ defmodule Exq.Support.Mode do
   def children(opts) do
     # we're using redis_cluster which is booted earlier
     # due to it being an erlang lib
-    {:ok, _any} = start_and_config_redis_cluster(opts)
+    opts = start_and_config_redis_cluster(opts)
     children(opts[:mode], opts)
   end
 

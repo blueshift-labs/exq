@@ -19,9 +19,9 @@ defmodule Exq.Redis.JobStat do
     ]
   end
 
-  def record_processed(redis, namespace, job, current_date \\ DateTime.utc_now()) do
+  def record_processed(namespace, job, current_date \\ DateTime.utc_now()) do
     instr = record_processed_commands(namespace, job, current_date)
-    {:ok, [count, _, _, _]} = Connection.qp(redis, instr)
+    {:ok, [count, _, _, _]} = Connection.qp(instr)
     {:ok, count}
   end
 
@@ -36,9 +36,9 @@ defmodule Exq.Redis.JobStat do
     ]
   end
 
-  def record_failure(redis, namespace, error, job, current_date \\ DateTime.utc_now()) do
+  def record_failure(namespace, error, job, current_date \\ DateTime.utc_now()) do
     instr = record_failure_commands(namespace, error, job, current_date)
-    {:ok, [count, _, _, _]} = Connection.qp(redis, instr)
+    {:ok, [count, _, _, _]} = Connection.qp(instr)
     {:ok, count}
   end
 
@@ -64,79 +64,78 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
-  def cleanup_processes(redis, namespace, host) do
-    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
+  def cleanup_processes(namespace, host) do
+    Connection.smembers!(JobQueue.full_key(namespace, "processes"))
     |> Enum.map(fn serialized -> {Process.decode(serialized), serialized} end)
     |> Enum.filter(fn {process, _} -> process.host == host end)
     |> Enum.each(fn {process, serialized} ->
-      remove_process(redis, namespace, process, serialized)
+      remove_process(namespace, process, serialized)
     end)
 
     :ok
   end
 
-  def busy(redis, namespace) do
-    Connection.scard!(redis, JobQueue.full_key(namespace, "processes"))
+  def busy(namespace) do
+    Connection.scard!(JobQueue.full_key(namespace, "processes"))
   end
 
-  def processes(redis, namespace) do
-    list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
+  def processes(namespace) do
+    list = Connection.smembers!(JobQueue.full_key(namespace, "processes")) || []
     Enum.map(list, &Process.decode/1)
   end
 
-  def find_failed(redis, namespace, jid) do
-    redis
-    |> Connection.zrange!(JobQueue.full_key(namespace, "dead"), 0, -1)
+  def find_failed(namespace, jid) do
+    Connection.zrange!(JobQueue.full_key(namespace, "dead"), 0, -1)
     |> JobQueue.search_jobs(jid)
   end
 
-  def remove_queue(redis, namespace, queue) do
-    Connection.qp(redis, [
+  def remove_queue(namespace, queue) do
+    Connection.qp([
       ["SREM", JobQueue.full_key(namespace, "queues"), queue],
       ["DEL", JobQueue.queue_key(namespace, queue)]
     ])
   end
 
-  def remove_failed(redis, namespace, jid) do
-    {:ok, failure} = find_failed(redis, namespace, jid)
+  def remove_failed(namespace, jid) do
+    {:ok, failure} = find_failed(namespace, jid)
 
-    Connection.qp(redis, [
+    Connection.qp([
       ["DECR", JobQueue.full_key(namespace, "stat:failed")],
       ["ZREM", JobQueue.full_key(namespace, "dead"), Job.encode(failure)]
     ])
   end
 
-  def clear_failed(redis, namespace) do
-    Connection.qp(redis, [
+  def clear_failed(namespace) do
+    Connection.qp([
       ["SET", JobQueue.full_key(namespace, "stat:failed"), 0],
       ["DEL", JobQueue.full_key(namespace, "dead")]
     ])
   end
 
-  def clear_processes(redis, namespace) do
-    Connection.del!(redis, JobQueue.full_key(namespace, "processes"))
+  def clear_processes(namespace) do
+    Connection.del!(JobQueue.full_key(namespace, "processes"))
   end
 
-  def realtime_stats(redis, namespace) do
+  def realtime_stats(namespace) do
     {:ok, [failure_keys, success_keys]} =
-      Connection.qp(redis, [
+      Connection.qp([
         ["KEYS", JobQueue.full_key(namespace, "stat:failed_rt:*")],
         ["KEYS", JobQueue.full_key(namespace, "stat:processed_rt:*")]
       ])
 
-    formatter = realtime_stats_formatter(redis, namespace)
+    formatter = realtime_stats_formatter(namespace)
     failures = formatter.(failure_keys, "stat:failed_rt:")
     successes = formatter.(success_keys, "stat:processed_rt:")
 
     {:ok, failures, successes}
   end
 
-  defp realtime_stats_formatter(redis, namespace) do
+  defp realtime_stats_formatter(namespace) do
     fn keys, ns ->
       if Enum.empty?(keys) do
         []
       else
-        {:ok, counts} = Connection.qp(redis, Enum.map(keys, &["GET", &1]))
+        {:ok, counts} = Connection.qp(Enum.map(keys, &["GET", &1]))
 
         Enum.map(keys, &Binary.take_prefix(&1, JobQueue.full_key(namespace, ns)))
         |> Enum.zip(counts)
@@ -144,8 +143,8 @@ defmodule Exq.Redis.JobStat do
     end
   end
 
-  def get_count(redis, namespace, key) do
-    case Connection.get!(redis, JobQueue.full_key(namespace, "stat:#{key}")) do
+  def get_count(namespace, key) do
+    case Connection.get!(JobQueue.full_key(namespace, "stat:#{key}")) do
       :undefined ->
         0
 

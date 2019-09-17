@@ -30,7 +30,8 @@ defmodule Exq.Support.Opts do
     if maybe_redis_cluster_configs[:database], do: Application.put_env(:eredis_cluster, :database, maybe_redis_cluster_configs[:database])
     if maybe_redis_cluster_configs[:password], do: Application.put_env(:eredis_cluster, :password, maybe_redis_cluster_configs[:password])
 
-     Application.ensure_all_started(:eredis_cluster)
+    {:ok, _any} = Application.ensure_all_started(:eredis_cluster)
+    opts
   end
 
   defp server_opts(:default, opts) do
