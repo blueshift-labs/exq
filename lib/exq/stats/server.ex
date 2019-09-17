@@ -18,7 +18,7 @@ defmodule Exq.Stats.Server do
   require Logger
 
   defmodule State do
-    defstruct redis: nil, queue: :queue.new()
+    defstruct queue: :queue.new()
   end
 
   @doc """
@@ -87,10 +87,10 @@ defmodule Exq.Stats.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-  def init(opts) do
+  def init(_opts) do
     Elixir.Process.flag(:trap_exit, true)
     Elixir.Process.send_after(self(), :flush, Config.get(:stats_flush_interval))
-    {:ok, %State{redis: opts[:redis]}}
+    {:ok, %State{}}
   end
 
   def handle_cast(msg, state) do
@@ -106,7 +106,7 @@ defmodule Exq.Stats.Server do
 
   def handle_call({:cleanup_host_stats, namespace, host}, _from, state) do
     try do
-      JobStat.cleanup_processes(state.redis, namespace, host)
+      JobStat.cleanup_processes(namespace, host)
     rescue
       e -> Logger.error("Error cleaning up processes -  #{Kernel.inspect(e)}")
     end

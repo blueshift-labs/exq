@@ -26,7 +26,6 @@ defmodule Exq.Middleware.Job do
   defp retry_or_fail_job(%Pipeline{assigns: assigns} = pipeline) do
     if assigns.job do
       JobQueue.retry_or_fail_job(
-        assigns.redis,
         assigns.namespace,
         assigns.job,
         to_string(assigns.error_message)
@@ -38,7 +37,6 @@ defmodule Exq.Middleware.Job do
 
   def remove_job_from_backup(%Pipeline{assigns: assigns} = pipeline) do
     JobQueue.remove_job_from_backup(
-      assigns.redis,
       assigns.namespace,
       assigns.host,
       assigns.queue,

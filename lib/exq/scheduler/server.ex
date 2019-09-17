@@ -69,7 +69,7 @@ defmodule Exq.Scheduler.Server do
   Dequeue any active jobs in the scheduled and retry queues, and enqueue them to live queue.
   """
   def dequeue(state) do
-    Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
+    Exq.Redis.JobQueue.scheduler_dequeue(state.namespace)
     {state, state.scheduler_poll_timeout}
   end
 end

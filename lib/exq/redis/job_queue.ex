@@ -39,7 +39,7 @@ defmodule Exq.Redis.JobQueue do
   def enqueue(namespace, queue, job_serialized) do
     try do
       response =
-        Connection.qp([
+        Connection.qmn([
           ["SADD", full_key(namespace, "queues"), queue],
           ["LPUSH", queue_key(namespace, queue), job_serialized]
         ])
@@ -194,12 +194,16 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
+  def full_key(namespace, node_id, "queue:backup::" <> queue = key) do
+    "#{namespace}:{queue:#{queue}}#{key <> "::" <> node_id}"
+  end
+
   def queue_key(namespace, queue) do
     full_key(namespace, "queue:#{queue}")
   end
 
   def backup_queue_key(namespace, node_id, queue) do
-    full_key(namespace, "queue:backup::#{node_id}::#{queue}")
+    full_key(namespace, node_id, "queue:backup::#{queue}")
   end
 
   def schedule_queues(namespace) do
