@@ -190,6 +190,7 @@ defmodule Exq.Redis.JobQueue do
     if String.starts_with?(key, "stat:") do
       "#{namespace}:{stat}:#{key}"
     else
+      # ToDo sentinel key to use just use for enqueue
       "#{namespace}:{#{key}}"
     end
   end
