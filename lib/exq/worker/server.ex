@@ -30,7 +30,6 @@ defmodule Exq.Worker.Server do
               work_table: nil,
               stats: nil,
               host: nil,
-              redis: nil,
               middleware: nil,
               pipeline: nil,
               metadata: nil,
@@ -45,13 +44,12 @@ defmodule Exq.Worker.Server do
         stats,
         namespace,
         host,
-        redis,
         middleware,
         metadata
       ) do
     GenServer.start_link(
       __MODULE__,
-      {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware,
+      {job_serialized, manager, queue, work_table, stats, namespace, host, middleware,
        metadata},
       []
     )
@@ -69,7 +67,7 @@ defmodule Exq.Worker.Server do
   ## ===========================================================
 
   def init(
-        {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware,
+        {job_serialized, manager, queue, work_table, stats, namespace, host, middleware,
          metadata}
       ) do
     {
@@ -82,7 +80,6 @@ defmodule Exq.Worker.Server do
         stats: stats,
         namespace: namespace,
         host: host,
-        redis: redis,
         middleware: middleware,
         metadata: metadata
       }

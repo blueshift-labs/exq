@@ -9,7 +9,6 @@ defmodule Exq.Enqueuer.Server do
     * `:name` - Name of target registered process
     * `:namespace` - Redis namespace to store all data under. Defaults to "exq".
     * `:queues` - Array of currently active queues (TODO: Remove, I suspect it's not needed).
-    * `:redis` - pid of Redis process.
     * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
   """
 

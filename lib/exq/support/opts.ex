@@ -73,7 +73,6 @@ defmodule Exq.Support.Opts do
       name: opts[:name],
       scheduler: scheduler,
       queues: queues,
-      redis: opts[:redis],
       concurrency: concurrency,
       middleware: middleware,
       default_middleware: default_middleware,
@@ -84,7 +83,7 @@ defmodule Exq.Support.Opts do
 
   defp server_opts(mode, opts) do
     namespace = opts[:namespace] || Config.get(:namespace)
-    [name: opts[:name], namespace: namespace, redis: opts[:redis], mode: mode]
+    [name: opts[:name], namespace: namespace, mode: mode]
   end
 
   defp get_queues(queue_configs) do
