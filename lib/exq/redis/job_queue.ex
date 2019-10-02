@@ -40,7 +40,7 @@ defmodule Exq.Redis.JobQueue do
     try do
       response =
         Connection.qmn([
-          ["SADD", full_key(namespace, "queues"), queue],
+          ["SADD", full_key(namespace, "queues:#{queue}"), queue],
           ["LPUSH", queue_key(namespace, queue), job_serialized]
         ])
 
@@ -185,18 +185,27 @@ defmodule Exq.Redis.JobQueue do
     scheduler_dequeue_requeue(t, namespace, schedule_queue, count)
   end
 
+  # below is used for enqueue sadd
+  def full_key(namespace, "queues:" <> queue) do
+    "#{namespace}:queues:{#{queue}}"
+  end
+
+  # below is used for enqueue lpush
+  def full_key(namespace, "queue:" <> queue) do
+    "#{namespace}:queue:{#{queue}}"
+  end
+
+  # below is a special-case for stat strings to be on one node
+  def full_key(namespace, "stat:" <> key) do
+    "#{namespace}:{stat}:#{key}"
+  end
+
   def full_key(namespace, key) do
-    # below is a special-case for stat strings to be on one node
-    if String.starts_with?(key, "stat:") do
-      "#{namespace}:{stat}:#{key}"
-    else
-      # ToDo sentinel key to use just use for enqueue
-      "#{namespace}:{#{key}}"
-    end
+    "#{namespace}:{#{key}}"
   end
 
   def full_key(namespace, node_id, "queue:backup::" <> queue = key) do
-    "#{namespace}:{queue:#{queue}}#{key <> "::" <> node_id}"
+    "#{namespace}:queue:{#{queue}}#{key <> "::" <> node_id}"
   end
 
   def queue_key(namespace, queue) do
