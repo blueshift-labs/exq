@@ -170,7 +170,7 @@ defmodule Exq.Redis.JobQueue do
 
     count =
       case resp do
-        {:ok, 1} ->
+        {:ok, "1"} ->
           enqueue(namespace, job_serialized)
           count + 1
 

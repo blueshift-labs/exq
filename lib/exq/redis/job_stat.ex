@@ -117,7 +117,7 @@ defmodule Exq.Redis.JobStat do
   end
 
   def realtime_stats(namespace) do
-    {:ok, [failure_keys, success_keys]} =
+    [ok: failure_keys, ok: success_keys] =
       Connection.qp([
         ["KEYS", JobQueue.full_key(namespace, "stat:failed_rt:*")],
         ["KEYS", JobQueue.full_key(namespace, "stat:processed_rt:*")]
@@ -135,7 +135,8 @@ defmodule Exq.Redis.JobStat do
       if Enum.empty?(keys) do
         []
       else
-        {:ok, counts} = Connection.qp(Enum.map(keys, &["GET", &1]))
+        [ok: counts] = Connection.qp(Enum.map(keys, &["GET", &1]))
+        counts = List.wrap(counts)
 
         Enum.map(keys, &Binary.take_prefix(&1, JobQueue.full_key(namespace, ns)))
         |> Enum.zip(counts)
