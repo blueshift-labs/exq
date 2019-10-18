@@ -285,8 +285,8 @@ defmodule Exq.Redis.JobQueue do
     now = Time.unix_seconds()
 
     commands = [
-      ["ZADD", key, Time.time_to_score(), job_serialized],
-      ["ZREMRANGEBYSCORE", key, "-inf", now - Config.get(:dead_timeout_in_seconds)],
+      ["ZADD", key, round(String.to_float(Time.time_to_score())), job_serialized],
+      ["ZREMRANGEBYSCORE", key, "-inf", round(now - Config.get(:dead_timeout_in_seconds))],
       ["ZREMRANGEBYRANK", key, 0, -Config.get(:dead_max_jobs) - 1]
     ]
 

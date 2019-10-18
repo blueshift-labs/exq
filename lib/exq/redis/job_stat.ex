@@ -135,8 +135,8 @@ defmodule Exq.Redis.JobStat do
       if Enum.empty?(keys) do
         []
       else
-        [ok: counts] = Connection.qp(Enum.map(keys, &["GET", &1]))
-        counts = List.wrap(counts)
+        res = Connection.qp(Enum.map(keys, &["GET", &1]))
+        counts = Enum.map(res, &elem(&1, 1))
 
         Enum.map(keys, &Binary.take_prefix(&1, JobQueue.full_key(namespace, ns)))
         |> Enum.zip(counts)
