@@ -54,7 +54,6 @@ defmodule Exq.Middleware.Pipeline do
   """
   def assign_worker_state(pipeline, worker_state) do
     pipeline
-    |> assign(:redis, worker_state.redis)
     |> assign(:host, worker_state.host)
     |> assign(:namespace, worker_state.namespace)
     |> assign(:queue, worker_state.queue)

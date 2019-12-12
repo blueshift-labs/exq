@@ -12,53 +12,26 @@ defmodule Exq.Support.Opts do
 
   defp conform_opts(opts) do
     mode = opts[:mode] || Config.get(:mode)
-    redis = redis_client_name(opts[:name])
-    opts = [{:redis, redis} | opts]
-
-    redis_opts = redis_opts(opts)
-    connection_opts = connection_opts(opts)
-    server_opts = server_opts(mode, opts)
-    {redis_opts, connection_opts, server_opts}
-  end
-
-  def redis_client_name(name) do
-    name = name || Config.get(:name)
-    "#{name}.Redis.Client" |> String.to_atom()
-  end
-
-  def redis_opts(opts \\ []) do
-    if url = opts[:url] || Config.get(:url) do
-      url
-    else
-      host = opts[:host] || Config.get(:host)
-      port = Coercion.to_integer(opts[:port] || Config.get(:port))
-      database = Coercion.to_integer(opts[:database] || Config.get(:database))
-      password = opts[:password] || Config.get(:password)
-      [host: host, port: port, database: database, password: password]
-    end
+    server_opts(mode, opts)
   end
 
   @doc """
-   Return {redis_module, redis_args, gen_server_opts}
+   starts applications for redis_cluster
   """
-  def redis_worker_opts(opts) do
-    {redis_opts, connection_opts, opts} = conform_opts(opts)
+  def start_and_config_redis_cluster(opts) do
+    maybe_redis_cluster_configs = Config.get(:redis_cluster)
+    opts = conform_opts(opts)
+    # try to bootstrap redis cluster
+    hosts = Enum.map(maybe_redis_cluster_configs[:hosts], &to_charlist/1)
+    redis_host_info = Enum.zip(hosts, maybe_redis_cluster_configs[:ports])
+    Application.put_env(:eredis_cluster, :init_nodes, redis_host_info)
+    Application.put_env(:eredis_cluster, :pool_size, maybe_redis_cluster_configs[:pool_size] || 20)
+    Application.put_env(:eredis_cluster, :pool_max_overflow, maybe_redis_cluster_configs[:pool_max_overflow] || 5)
+    if maybe_redis_cluster_configs[:database], do: Application.put_env(:eredis_cluster, :database, maybe_redis_cluster_configs[:database])
+    if maybe_redis_cluster_configs[:password], do: Application.put_env(:eredis_cluster, :password, maybe_redis_cluster_configs[:password])
 
-    if is_binary(redis_opts) do
-      {Redix, [redis_opts, connection_opts], opts}
-    else
-      {Redix, [Keyword.merge(redis_opts, connection_opts)], opts}
-    end
-  end
-
-  def connection_opts(opts \\ []) do
-    redis_options = opts[:redis_options] || Config.get(:redis_options)
-    socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
-
-    Keyword.merge(
-      [name: opts[:redis], socket_opts: socket_opts],
-      redis_options
-    )
+    {:ok, _any} = Application.ensure_all_started(:eredis_cluster)
+    opts
   end
 
   defp server_opts(:default, opts) do
@@ -100,7 +73,6 @@ defmodule Exq.Support.Opts do
       name: opts[:name],
       scheduler: scheduler,
       queues: queues,
-      redis: opts[:redis],
       concurrency: concurrency,
       middleware: middleware,
       default_middleware: default_middleware,
@@ -111,7 +83,7 @@ defmodule Exq.Support.Opts do
 
   defp server_opts(mode, opts) do
     namespace = opts[:namespace] || Config.get(:namespace)
-    [name: opts[:name], namespace: namespace, redis: opts[:redis], mode: mode]
+    [name: opts[:name], namespace: namespace, mode: mode]
   end
 
   defp get_queues(queue_configs) do

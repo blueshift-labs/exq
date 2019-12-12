@@ -9,7 +9,6 @@ defmodule Exq.Enqueuer.Server do
     * `:name` - Name of target registered process
     * `:namespace` - Redis namespace to store all data under. Defaults to "exq".
     * `:queues` - Array of currently active queues (TODO: Remove, I suspect it's not needed).
-    * `:redis` - pid of Redis process.
     * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
   """
 
@@ -20,7 +19,7 @@ defmodule Exq.Enqueuer.Server do
   use GenServer
 
   defmodule State do
-    defstruct redis: nil, namespace: nil
+    defstruct namespace: nil
   end
 
   def start_link(opts \\ []) do
@@ -32,18 +31,18 @@ defmodule Exq.Enqueuer.Server do
   ## ===========================================================
 
   def init(opts) do
-    {:ok, %State{redis: opts[:redis], namespace: opts[:namespace]}}
+    {:ok, %State{namespace: opts[:namespace]}}
   end
 
   def handle_cast({:enqueue, from, queue, worker, args, options}, state) do
-    response = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args, options)
+    response = JobQueue.enqueue(state.namespace, queue, worker, args, options)
     GenServer.reply(from, response)
     {:noreply, state}
   end
 
   def handle_cast({:enqueue_at, from, queue, time, worker, args, options}, state) do
     response =
-      JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
+      JobQueue.enqueue_at(state.namespace, queue, time, worker, args, options)
 
     GenServer.reply(from, response)
     {:noreply, state}
@@ -51,27 +50,27 @@ defmodule Exq.Enqueuer.Server do
 
   def handle_cast({:enqueue_in, from, queue, offset, worker, args, options}, state) do
     response =
-      JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
+      JobQueue.enqueue_in(state.namespace, queue, offset, worker, args, options)
 
     GenServer.reply(from, response)
     {:noreply, state}
   end
 
   def handle_call({:enqueue, queue, worker, args, options}, _from, state) do
-    response = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args, options)
+    response = JobQueue.enqueue(state.namespace, queue, worker, args, options)
     {:reply, response, state}
   end
 
   def handle_call({:enqueue_at, queue, time, worker, args, options}, _from, state) do
     response =
-      JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
+      JobQueue.enqueue_at(state.namespace, queue, time, worker, args, options)
 
     {:reply, response, state}
   end
 
   def handle_call({:enqueue_in, queue, offset, worker, args, options}, _from, state) do
     response =
-      JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
+      JobQueue.enqueue_in(state.namespace, queue, offset, worker, args, options)
 
     {:reply, response, state}
   end

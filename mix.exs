@@ -21,6 +21,7 @@ defmodule Exq.Mixfile do
       Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
       """,
       deps: deps(),
+      aliases: [test: "test --no-start"],
       test_coverage: [tool: ExCoveralls],
       docs: [extras: ["README.md"]]
     ]
@@ -30,7 +31,7 @@ defmodule Exq.Mixfile do
   def application do
     [
       mod: {Exq, []},
-      applications: [:logger, :redix, :elixir_uuid]
+      applications: [:logger, :elixir_uuid]
     ]
   end
 
@@ -39,14 +40,14 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       {:elixir_uuid, ">= 1.2.0"},
-      {:redix, ">= 0.8.1"},
+      {:eredis_cluster, "~> 0.5.12", runtime: false},
       {:poison, ">= 1.2.0 or ~> 2.0", optional: true},
       {:jason, "~> 1.0", optional: true},
       {:excoveralls, "~> 0.6", only: :test},
       {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
 
       # docs
-      {:ex_doc, "~> 0.19", only: :dev},
+      {:ex_doc, "~> 0.19", only: :dev, override: true},
       {:earmark, "~> 1.0", only: :dev},
       {:ranch, "~> 1.6", only: :test, override: true}
     ]

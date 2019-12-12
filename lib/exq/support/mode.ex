@@ -11,15 +11,14 @@ defmodule Exq.Support.Mode do
   Returns child list for the main Exq supervisor
   """
 
-  import Exq.Support.Opts, only: [redis_worker_opts: 1]
+  import Exq.Support.Opts, only: [start_and_config_redis_cluster: 1]
   import Supervisor.Spec
 
   def children(opts) do
-    {module, args, opts} = redis_worker_opts(opts)
-    # make sure redis always first(start in order)
-    children = [worker(module, args)]
-    children = children ++ children(opts[:mode], opts)
-    children
+    # we're using redis_cluster which is booted earlier
+    # due to it being an erlang lib
+    opts = start_and_config_redis_cluster(opts)
+    children(opts[:mode], opts)
   end
 
   def children(:default, opts) do

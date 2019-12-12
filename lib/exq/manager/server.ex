@@ -25,19 +25,10 @@ defmodule Exq.Manager.Server do
     * `:queues` - List of queues to monitor. Can be an array of queues names such as ["q1", "q2"], or
       array of tuples with queue and max number of concurrent workers: [{"q1", 1}, {"q2", 20}].
       If only an array is passed in, system will use the default `concurrency` value for each queue.
-    * `:redis_timeout` - Timeout to use for Redis commands.
     * `:poll_timeout` - How often to poll Redis for jobs.
     * `:scheduler_enable` - Whether scheduler / retry process should be enabled. This defaults
       to true.  Note that is you turn this off, job retries will not be enqueued.
     * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
-
-  ## Redis Options (TODO - move to supervisor after refactor):
-    * `:host` - Host name for Redis server (defaults to '127.0.0.1')
-    * `:port` - Redis port (defaults to 6379)
-    * `:database` - Redis Database number (used for isolation. Defaults to 0).
-    * `:password` - Redis authentication password (optional, off by default).
-    * `:redis_options` - Additional options provided to Redix
-    * TODO: What about max_reconnection_attempts
 
   ## Job lifecycle
 
@@ -117,8 +108,7 @@ defmodule Exq.Manager.Server do
   @backoff_mult 10
 
   defmodule State do
-    defstruct redis: nil,
-              stats: nil,
+    defstruct stats: nil,
               enqueuer: nil,
               pid: nil,
               node_id: nil,
@@ -157,7 +147,6 @@ defmodule Exq.Manager.Server do
 
     state = %State{
       work_table: work_table,
-      redis: opts[:redis],
       stats: opts[:stats],
       workers_sup: opts[:workers_sup],
       enqueuer: opts[:enqueuer],
@@ -171,7 +160,7 @@ defmodule Exq.Manager.Server do
       scheduler_poll_timeout: opts[:scheduler_poll_timeout]
     }
 
-    check_redis_connection(opts)
+    check_redis_connection()
     {:ok, state, 0}
   end
 
@@ -216,7 +205,7 @@ defmodule Exq.Manager.Server do
 
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
-      JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
+      JobQueue.re_enqueue_backup(state.namespace, state.node_id, queue)
     end)
 
     {:noreply, state, 0}
@@ -262,7 +251,7 @@ defmodule Exq.Manager.Server do
 
   def dequeue_and_dispatch(state, queues) do
     rescue_timeout({state, state.poll_timeout}, fn ->
-      jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
+      jobs = Exq.Redis.JobQueue.dequeue(state.namespace, state.node_id, queues)
 
       job_results = jobs |> Enum.map(fn potential_job -> dispatch_job(state, potential_job) end)
 
@@ -320,7 +309,6 @@ defmodule Exq.Manager.Server do
           state.stats,
           state.namespace,
           state.node_id,
-          state.redis,
           state.middleware,
           state.metadata
         ]
@@ -395,22 +383,24 @@ defmodule Exq.Manager.Server do
 
   # Check Redis connection using PING and raise exception with
   # user friendly error message if Redis is down.
-  defp check_redis_connection(opts) do
+  defp check_redis_connection() do
     try do
-      {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
+      ~w(PING)
+      |> Exq.Redis.Connection.qa()
+      |> Enum.each(fn {:ok, _any} -> :ok end)
     catch
       err, reason ->
-        opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap() |> List.delete(:password)
+        opts = Config.get(:redis_cluster) |> List.wrap() |> List.delete(:password)
 
         raise """
         \n\n\n#{String.duplicate("=", 100)}
-        ERROR! Could not connect to Redis!
+        ERROR! Could not connect to Redis Cluster!
 
         Configuration passed in: #{inspect(opts)}
         Error: #{inspect(err)}
         Reason: #{inspect(reason)}
 
-        Make sure Redis is running, and your configuration matches Redis settings.
+        Make sure Redis Cluster is running, and your configuration matches Redis settings.
         #{String.duplicate("=", 100)}
         """
     end

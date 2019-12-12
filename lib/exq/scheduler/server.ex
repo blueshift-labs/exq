@@ -11,7 +11,6 @@ defmodule Exq.Scheduler.Server do
     * `:name` - Name of target registered process
     * `:namespace` - Redis namespace to store all data under. Defaults to "exq".
     * `:queues` - Array of currently active queues (TODO: Remove, I suspect it's not needed).
-    * `:redis` - pid of Redis process.
     * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
   """
 
@@ -19,7 +18,7 @@ defmodule Exq.Scheduler.Server do
   use GenServer
 
   defmodule State do
-    defstruct redis: nil, namespace: nil, queues: nil, scheduler_poll_timeout: nil
+    defstruct namespace: nil, queues: nil, scheduler_poll_timeout: nil
   end
 
   def start_link(opts \\ []) do
@@ -41,7 +40,6 @@ defmodule Exq.Scheduler.Server do
 
   def init(opts) do
     state = %State{
-      redis: opts[:redis],
       namespace: opts[:namespace],
       queues: opts[:queues],
       scheduler_poll_timeout: opts[:scheduler_poll_timeout]
@@ -69,7 +67,7 @@ defmodule Exq.Scheduler.Server do
   Dequeue any active jobs in the scheduled and retry queues, and enqueue them to live queue.
   """
   def dequeue(state) do
-    Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
+    Exq.Redis.JobQueue.scheduler_dequeue(state.namespace)
     {state, state.scheduler_poll_timeout}
   end
 end
